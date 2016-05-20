@@ -1,6 +1,6 @@
 effect module Navigation where { command = MyCmd, subscription = MySub } exposing
-  ( back, forward, jump
-  , add, replace
+  ( back, forward
+  , newUrl, modifyUrl
   , program, programWithFlags
   , Parser, makeParser, State, Location
   )
@@ -91,18 +91,13 @@ program parser stuff =
 -- TIME TRAVEL
 
 
-back : Cmd msg
-back =
-  jump -1
+back : Int -> Cmd msg
+back n =
+  command (Jump -n)
 
 
-forward : Cmd msg
-forward =
-  jump 1
-
-
-jump : Int -> Cmd msg
-jump n =
+forward : Int -> Cmd msg
+forward n =
   command (Jump n)
 
 
@@ -110,14 +105,14 @@ jump n =
 -- CHANGE HISTORY
 
 
-add : String -> Cmd msg
-add url =
-  command (Add url)
+newUrl : String -> Cmd msg
+newUrl url =
+  command (New url)
 
 
-replace : String -> Cmd msg
-replace url =
-  command (Replace url)
+modifyUrl : String -> Cmd msg
+modifyUrl url =
+  command (Modify url)
 
 
 
@@ -166,8 +161,8 @@ type alias Location =
 
 type MyCmd msg
   = Jump Int
-  | Add String
-  | Replace String
+  | New String
+  | Modify String
 
 
 cmdMap : (a -> b) -> MyCmd a -> MyCmd b
@@ -176,11 +171,11 @@ cmdMap _ myCmd =
     Jump n ->
       Jump n
 
-    Add url ->
-      Add url
+    New url ->
+      New url
 
-    Replace url ->
-      Replace url
+    Modify url ->
+      Modify url
 
 
 type MySub msg =
@@ -225,13 +220,13 @@ onEffectsHelp router cmd subs index =
       dispatch router subs (State location length (clamp 0 (length - 1) (index + n)))
 
 
-    Add url ->
+    New url ->
       pushState url
         `Task.andThen` \{length, location} ->
 
       dispatch router subs (State location length (index + 1))
 
-    Replace url ->
+    Modify url ->
       replaceState url
         `Task.andThen` \{length, location} ->
 
