@@ -4,7 +4,10 @@ function go(n)
 {
 	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
 	{
-		history.go(n);
+		if (n !== 0)
+		{
+			history.go(n);
+		}
 		callback(_elm_lang$core$Native_Scheduler.succeed(getState()));
 	});
 }
