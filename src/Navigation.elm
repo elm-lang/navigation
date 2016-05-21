@@ -6,6 +6,23 @@ effect module Navigation where { command = MyCmd, subscription = MySub } exposin
   )
 
 {-|
+
+A module for dealing with navigating through the history of a web page.
+
+## Time travel
+@docs back, forward
+
+## Change history
+@docs newUrl, modifyUrl
+
+## History state
+@docs State, Location
+
+## Parsing history
+@docs Parser, makeParser
+
+## Creating applications
+@docs program, programWithFlags
 -}
 
 
@@ -23,7 +40,12 @@ type MyMsg msg
   = Change State
   | UserMsg msg
 
-
+{-|
+The same as creating a program with (Html)[http://package.elm-lang.org/packages/elm-lang/html/1.0.0/Html-App#create-a-program]
+The main differences are that:
+  - Takes a parser created by `makeParser`
+  - `init` and `urlUpdate` take data that was parsed by that parser
+-}
 programWithFlags
   : Parser data
   ->
@@ -75,7 +97,12 @@ updateHelp : (a -> b) -> (model, Cmd a) -> (model, Cmd b)
 updateHelp func (model, cmds) =
   (model, Cmd.map func cmds)
 
-
+{-|
+The same as creating a program with (Html)[http://package.elm-lang.org/packages/elm-lang/html/1.0.0/Html-App#create-a-program]
+The main differences are that:
+  - Takes a parser created by `makeParser`
+  - `init` and `urlUpdate` take data that was parsed by that parser
+-}
 program
   : Parser data
   ->
@@ -93,12 +120,18 @@ program parser stuff =
 
 -- TIME TRAVEL
 
-
+{-|
+Go back `n` in history. If `n` would take you out of the Elm, does nothing
+Otherwise, triggers a call to `urlUpdate`
+-}
 back : Int -> Cmd msg
 back n =
   command (Jump -n)
 
-
+{-|
+Go forward `n` in history. If `n` would take you out of the Elm, does nothing
+Otherwise, triggers a call to `urlUpdate`
+-}
 forward : Int -> Cmd msg
 forward n =
   command (Jump n)
@@ -107,12 +140,18 @@ forward n =
 
 -- CHANGE HISTORY
 
-
+{-|
+Push a new url onto the history stack, setting the url to be equal to this
+Pushing a url at a point when (index < length) will discard frames after
+the current index, putting the new url at the head
+-}
 newUrl : String -> Cmd msg
 newUrl url =
   command (New url)
 
-
+{-|
+Replace the url in the current frame. Not destructive like newUrl
+-}
 modifyUrl : String -> Cmd msg
 modifyUrl url =
   command (Modify url)
@@ -121,16 +160,29 @@ modifyUrl url =
 
 -- PARSING
 
-
+{-|
+A parser takes a state snapshot and turns it into something
+that can be understood by your application.
+-}
 type Parser a =
   Parser (State -> a)
 
-
+{-|
+A parser takes a state and returns some type for data to be fed to `urlUpdate`
+and `init`
+-}
 makeParser : (State -> a) -> Parser a
 makeParser =
   Parser
 
 
+{-|
+A representation of a frame of history.
+
+- `location` is the equivlent of `window.location` at the current point in time
+- `length` is the current number of items in the history stack
+- `index` is the current position of your application in that stack
+-}
 type alias State =
   { location : Location
   , length : Int
