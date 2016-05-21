@@ -58,7 +58,10 @@ programWithFlags (Parser parser) stuff =
       Native.Navigation.getState ()
 
     init flags =
-      updateHelp UserMsg (stuff.init flags (parser (State location length length)))
+      State location length (length - 1)
+        |> parser
+        |> stuff.init flags
+        |> updateHelp UserMsg
   in
     App.programWithFlags
       { init = init
@@ -214,10 +217,15 @@ onEffectsHelp : Platform.Router msg Never -> MyCmd msg -> List (MySub msg) -> In
 onEffectsHelp router cmd subs index =
   case cmd of
     Jump n ->
-      go n
-        `Task.andThen` \{length, location} ->
+      -- when index is 0, then the browser will go back off the current page
+      -- this probably isn't something you want to trigger in Elm. So we just stay on the current page
+      if index + n <= 0 then
+        Task.succeed index
+      else
+        go n
+          `Task.andThen` \{length, location} ->
 
-      dispatch router subs (State location length (clamp 0 (length - 1) (index + n)))
+        dispatch router subs (State location length (clamp 0 (length - 1) (index + n)))
 
 
     New url ->
