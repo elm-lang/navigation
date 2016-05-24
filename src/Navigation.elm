@@ -5,15 +5,12 @@ effect module Navigation where { command = MyCmd, subscription = MySub } exposin
   , Parser, makeParser, State, Location
   )
 
-{-| This library lets you manage the address bar of a browser.
+{-| This is a library for managing browser navigation yourself.
 
-The core functionality is the ability to &ldquo;navigate&rdquo; to a new URL,
+The core functionality is the ability to &ldquo;navigate&rdquo; to new URLs,
 changing the address bar of the broswer *without* the browser kicking off a
-request to your servers.
+request to your servers. Instead, you manage the changes yourself in Elm.
 
-This is common in single-page apps (SPAs) where you switch between different
-pages without doing a full refresh. This can mean you have less network traffic
-and get people from page to page more quickly.
 
 # Change the URL
 @docs newUrl, modifyUrl
