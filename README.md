@@ -7,6 +7,11 @@ The core functionality is the ability to &ldquo;navigate&rdquo; to new URLs, cha
 This is common in single-page apps (SPAs) where you switch between different pages without doing a full refresh. This can mean you have less network traffic and get people from page to page more quickly.
 
 
+## Examples
+
+Check out the `examples/` directory of this repo. The `README` there will give you more information.
+
+
 ## Terminology
 
 The term &ldquo;routing&rdquo; is commonly used as a blanket term for anything related to managing the address bar yourself. I think this term is misleading, and probably harmful to the architecture of front-end applications.
