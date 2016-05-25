@@ -107,6 +107,11 @@ updateHelp func (model, cmds) =
   in a message, update the model.)
 
 [doc]: http://package.elm-lang.org/packages/elm-lang/html/latest/Html-App#program
+
+**Note:** The `urlUpdate` function is called every time the URL changes. This
+includes things exposed by this library, like `back` and `newUrl`, as well as
+whenever the user clicks the back or forward buttons of the browsers. If the
+address changes, you should hear about it.
 -}
 program
   : Parser data
