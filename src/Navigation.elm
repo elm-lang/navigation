@@ -2,7 +2,7 @@ effect module Navigation where { command = MyCmd, subscription = MySub } exposin
   ( back, forward
   , newUrl, modifyUrl
   , program, programWithFlags
-  , Parser, makeParser, State, Location
+  , Parser, makeParser, Location
   )
 
 {-| This is a library for managing browser navigation yourself.
@@ -19,15 +19,18 @@ request to your servers. Instead, you manage the changes yourself in Elm.
 @docs back, forward
 
 # Start your Program
-@docs program, programWithFlags, Parser, makeParser, State, Location
+@docs program, programWithFlags, Parser, makeParser, Location
 
 -}
 
 
+import Dom.LowLevel exposing (onWindow)
 import Html exposing (Html)
 import Html.App as App
+import Json.Decode as Json
 import Native.Navigation
-import Task
+import Process
+import Task exposing (Task)
 
 
 
@@ -35,7 +38,7 @@ import Task
 
 
 type MyMsg msg
-  = Change State
+  = Change Location
   | UserMsg msg
 
 
@@ -59,8 +62,8 @@ programWithFlags (Parser parser) stuff =
     update msg model =
       updateHelp UserMsg <|
         case msg of
-          Change state ->
-            stuff.urlUpdate (parser state) model
+          Change location ->
+            stuff.urlUpdate (parser location) model
 
           UserMsg userMsg ->
             stuff.update userMsg model
@@ -74,11 +77,11 @@ programWithFlags (Parser parser) stuff =
     view model =
       App.map UserMsg (stuff.view model)
 
-    {length, location} =
-      Native.Navigation.getState ()
+    location =
+      Native.Navigation.getLocation ()
 
     init flags =
-      updateHelp UserMsg (stuff.init flags (parser (State location length length)))
+      updateHelp UserMsg (stuff.init flags (parser location))
   in
     App.programWithFlags
       { init = init
@@ -183,35 +186,23 @@ your program. A `Parser` helps you turn the string in the address bar into
 data that is easier for your app to handle.
 -}
 type Parser a =
-  Parser (State -> a)
+  Parser (Location -> a)
 
 
 {-| The `makeParser` function lets you parse the navigation state any way you
 want.
 
-**Note:** Check out [`evancz/url-parser`][parse] for an example of a URL
-parser. The approach used there makes it pretty easy to turn strings into
-structured data, so I hope it will serve as a baseline for other URL parsing
+**Note:** Check out the examples associated with this GitHub repo to see a
+simple usage. See [`evancz/url-parser`][parse] for a more complex example of
+URL parsing. The approach used there makes it pretty easy to turn strings into
+structured data, and I hope it will serve as a baseline for other URL parsing
 libraries that folks make.
 
 [parse]: https://github.com/evancz/url-parser
 -}
-makeParser : (State -> a) -> Parser a
+makeParser : (Location -> a) -> Parser a
 makeParser =
   Parser
-
-
-{-| The current navigation state. The `location` contains a lot of information
-about what is going on in the address bar. The `length` field tells you how
-many frames of broser history that are under your control. If you use `newUrl`
-four times, you will have five frames under your control. The `index` field
-tells you where you are in that history.
--}
-type alias State =
-  { location : Location
-  , length : Int
-  , index : Int
-  }
 
 
 {-| A bunch of information about the address bar.
@@ -265,7 +256,7 @@ cmdMap _ myCmd =
 
 
 type MySub msg =
-  Monitor (State -> msg)
+  Monitor (Location -> msg)
 
 
 subMap : (a -> b) -> MySub a -> MySub b
@@ -273,80 +264,89 @@ subMap func (Monitor tagger) =
   Monitor (tagger >> func)
 
 
-init : Task.Task Never Int
-init =
-  Task.succeed 0
+(&>) task1 task2 =
+  task1 `Task.andThen` \_ -> task2
 
 
-onSelfMsg : Platform.Router msg Never -> Never -> Int -> Task.Task Never Int
-onSelfMsg _ _ index =
-  Task.succeed index
-
-
-onEffects : Platform.Router msg Never -> List (MyCmd msg) -> List (MySub msg) -> Int -> Task.Task Never Int
-onEffects router cmds subs index =
-  case cmds of
-    [] ->
-      Task.succeed index
-
-    cmd :: rest ->
-      onEffectsHelp router cmd subs index
-        `Task.andThen`
-
-      onEffects router rest subs
-
-
-onEffectsHelp : Platform.Router msg Never -> MyCmd msg -> List (MySub msg) -> Int -> Task.Task Never Int
-onEffectsHelp router cmd subs index =
-  case cmd of
-    Jump n ->
-      go n
-        `Task.andThen` \{length, location} ->
-
-      dispatch router subs (State location length (clamp 0 (length - 1) (index + n)))
-
-
-    New url ->
-      pushState url
-        `Task.andThen` \{length, location} ->
-
-      dispatch router subs (State location length (index + 1))
-
-    Modify url ->
-      replaceState url
-        `Task.andThen` \{length, location} ->
-
-      dispatch router subs (State location length index)
-
-
-dispatch : Platform.Router msg Never -> List (MySub msg) -> State -> Task.Task Never Int
-dispatch router subs state =
-  let
-    send (Monitor tagger) =
-      Platform.sendToApp router (tagger state)
-  in
-    Task.sequence (List.map send subs)
-      `Task.andThen` \_ ->
-
-    Task.succeed state.index
-
-
-type alias PartialState =
-  { length : Int
-  , location : Location
+type alias State msg =
+  { subs : List (MySub msg)
+  , process : Maybe Process.Id
   }
 
 
-go : Int -> Task.Task x PartialState
+init : Task Never (State msg)
+init =
+  Task.succeed (State [] Nothing)
+
+
+onSelfMsg : Platform.Router msg Location -> Location -> State msg -> Task Never (State msg)
+onSelfMsg router location state =
+  notify router state.subs location
+    &> Task.succeed state
+
+
+onEffects : Platform.Router msg Location -> List (MyCmd msg) -> List (MySub msg) -> State msg -> Task Never (State msg)
+onEffects router cmds subs {process} =
+  let
+    stepState =
+      case (subs, process) of
+        ([], Just pid) ->
+          Process.kill pid
+            &> Task.succeed (State subs Nothing)
+
+        (_ :: _, Nothing) ->
+          spawnPopState router
+            `Task.andThen` \pid ->
+
+          Task.succeed (State subs (Just pid))
+
+        (_, _) ->
+          Task.succeed (State subs process)
+
+  in
+    Task.sequence (List.map (cmdHelp router subs) cmds)
+      &> stepState
+
+
+cmdHelp : Platform.Router msg Location -> List (MySub msg) -> MyCmd msg -> Task Never ()
+cmdHelp router subs cmd =
+  case cmd of
+    Jump n ->
+      go n
+
+    New url ->
+      pushState url `Task.andThen` notify router subs
+
+    Modify url ->
+      replaceState url `Task.andThen` notify router subs
+
+
+notify : Platform.Router msg Location -> List (MySub msg) -> Location -> Task x ()
+notify router subs location =
+  let
+    send (Monitor tagger) =
+      Platform.sendToApp router (tagger location)
+  in
+    Task.sequence (List.map send subs)
+      &> Task.succeed ()
+
+
+spawnPopState : Platform.Router msg Location -> Task x Process.Id
+spawnPopState router =
+  Process.spawn <| onWindow "popstate" Json.value <| \_ ->
+    Platform.sendToSelf router (Native.Navigation.getLocation ())
+
+
+go : Int -> Task x ()
 go =
   Native.Navigation.go
 
 
-pushState : String -> Task.Task x PartialState
+pushState : String -> Task x Location
 pushState =
   Native.Navigation.pushState
 
 
-replaceState : String -> Task.Task x PartialState
+replaceState : String -> Task x Location
 replaceState =
   Native.Navigation.replaceState

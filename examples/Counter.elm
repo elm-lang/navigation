@@ -39,7 +39,7 @@ fromUrl url =
 
 urlParser : Navigation.Parser (Result String Int)
 urlParser =
-  Navigation.makeParser (fromUrl << .hash << .location)
+  Navigation.makeParser (fromUrl << .hash)
 
 
 
