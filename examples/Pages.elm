@@ -61,15 +61,7 @@ type alias User =
 type alias Model =
   { userList : List User
   , currentPage : Page
-  , selectedUserId : Int
-  }
-
-
-emptyUser : User
-emptyUser =
-  { id = 0
-  , name = ""
-  , profilePicture = ""
+  , selectedUserId : Maybe Int
   }
 
 
@@ -90,7 +82,7 @@ initialModel : Model
 initialModel =
   { userList = users
   , currentPage = UserListPage
-  , selectedUserId = 0
+  , selectedUserId = Nothing
   }
 
 
@@ -130,7 +122,7 @@ urlUpdate userId model =
     Just id ->
       ( { model
           | currentPage = ProfilePage
-          , selectedUserId = id
+          , selectedUserId = userId
         }
       , Cmd.none
       )
@@ -152,52 +144,6 @@ subscriptions model =
 -- VIEW
 
 
-userCard : User -> Html Msg
-userCard user =
-  li
-    [ style
-        [ ( "margin-bottom", "0.5rem" )
-        , ( "cursor", "pointer" )
-        , ( "text-decoration", "underline" )
-        ]
-    , onClick (SelectUser user.id)
-    ]
-    [ text user.name ]
-
-
-{-| The whole view is modeled after current page. Both pages have an unique structure. If we
-  were to add more pages, we would need to also connect the page to a view.
--}
-pageView : Model -> Html Msg
-pageView model =
-  case model.currentPage of
-    UserListPage ->
-      div []
-        [ h1 [] [ text "Users" ]
-        , ul []
-            (List.map userCard model.userList)
-        ]
-
-    ProfilePage ->
-      let
-        user =
-          model.userList
-            |> List.filter (\user -> user.id == model.selectedUserId)
-            |> List.head
-            |> Maybe.withDefault emptyUser
-      in
-        div []
-          [ h1 [] [ text "Profile" ]
-          , div []
-              [ h2 []
-                  [ text user.name ]
-              , img [ src user.profilePicture ]
-                  []
-              ]
-          , a [ href "#/" ] [ text "Back to user list" ]
-          ]
-
-
 {-| Some HTML is shared between different pages. If we had a navigation
   bar or a header we would add them here. Instead we just add some white-space
   around the application.
@@ -210,3 +156,71 @@ view model =
         ]
     ]
     [ pageView model ]
+
+
+{-| The actual view is modeled after current page. Both pages have an unique structure. If we
+  were to add more pages, we would need to also connect the page to a view.
+-}
+pageView : Model -> Html Msg
+pageView model =
+  case model.currentPage of
+    UserListPage ->
+      userListPageView model
+
+    ProfilePage ->
+      profilePageView model
+
+
+userListPageView : Model -> Html Msg
+userListPageView model =
+  div []
+    [ h1 [] [ text "Users" ]
+    , ul []
+        (List.map userItem model.userList)
+    ]
+
+
+{-| The profile page can contain two kinds of information. In the case of
+  a valid profile selection we can display the profile content. A valid
+  user id might not be present in the url, or user list may not contain the
+  selected user, though. In those cases we need to display an error message.
+-}
+profilePageView : Model -> Html msg
+profilePageView model =
+  let
+    findUser userId =
+      model.userList
+        |> List.filter (\user -> user.id == userId)
+        |> List.head
+  in
+    div []
+      [ h1 [] [ text "Profile" ]
+      , model.selectedUserId
+          |> (flip Maybe.andThen) findUser
+          |> Maybe.map profileContent
+          |> Maybe.withDefault (text "User not found")
+      , a [ href "#/" ] [ text "Back to user list" ]
+      ]
+
+
+userItem : User -> Html Msg
+userItem user =
+  li
+    [ style
+        [ ( "margin-bottom", "0.5rem" )
+        , ( "cursor", "pointer" )
+        , ( "text-decoration", "underline" )
+        ]
+    , onClick (SelectUser user.id)
+    ]
+    [ text user.name ]
+
+
+profileContent : User -> Html msg
+profileContent user =
+  div []
+    [ h2 []
+        [ text user.name ]
+    , img [ src user.profilePicture ]
+        []
+    ]
