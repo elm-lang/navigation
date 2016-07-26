@@ -30,6 +30,16 @@ function replaceState(url)
 	});
 }
 
+function setLocation(url)
+{
+	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	{
+		window.location = url;
+		callback(_elm_lang$core$Native_Scheduler.succeed(_elm_lang$core$Native_Utils.Tuple0));
+	});
+}
+
+
 function getLocation()
 {
 	var location = document.location;
@@ -52,6 +62,7 @@ function getLocation()
 
 return {
 	go: go,
+	setLocation: setLocation,
 	pushState: pushState,
 	replaceState: replaceState,
 	getLocation: getLocation

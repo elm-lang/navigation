@@ -1,5 +1,5 @@
 effect module Navigation where { command = MyCmd, subscription = MySub } exposing
-  ( back, forward
+  ( back, forward, visit
   , newUrl, modifyUrl
   , program, programWithFlags
   , Parser, makeParser, Location
@@ -16,7 +16,7 @@ request to your servers. Instead, you manage the changes yourself in Elm.
 @docs newUrl, modifyUrl
 
 # Navigation
-@docs back, forward
+@docs back, forward, visit
 
 # Start your Program
 @docs program, programWithFlags, Parser, makeParser, Location
@@ -158,6 +158,16 @@ forward n =
   command (Jump n)
 
 
+{-| Leave the current page and visit the given URL. This results in a page load
+even if the provided URL is the same as the current one.
+
+    visit "http://elm-lang.org"
+-}
+visit : String -> Cmd msg
+visit url =
+  command (Visit url)
+
+
 
 -- CHANGE HISTORY
 
@@ -237,7 +247,6 @@ type alias Location =
   }
 
 
-
 -- EFFECT MANAGER
 
 
@@ -245,6 +254,7 @@ type MyCmd msg
   = Jump Int
   | New String
   | Modify String
+  | Visit String
 
 
 cmdMap : (a -> b) -> MyCmd a -> MyCmd b
@@ -258,6 +268,9 @@ cmdMap _ myCmd =
 
     Modify url ->
       Modify url
+
+    Visit url ->
+        Visit url
 
 
 type MySub msg =
@@ -325,6 +338,9 @@ cmdHelp router subs cmd =
     Modify url ->
       replaceState url `Task.andThen` notify router subs
 
+    Visit url ->
+      setLocation url
+
 
 notify : Platform.Router msg Location -> List (MySub msg) -> Location -> Task x ()
 notify router subs location =
@@ -340,6 +356,11 @@ spawnPopState : Platform.Router msg Location -> Task x Process.Id
 spawnPopState router =
   Process.spawn <| onWindow "popstate" Json.value <| \_ ->
     Platform.sendToSelf router (Native.Navigation.getLocation ())
+
+
+setLocation : String -> Task x ()
+setLocation =
+  Native.Navigation.setLocation
 
 
 go : Int -> Task x ()
