@@ -30,6 +30,17 @@ function replaceState(url)
 	});
 }
 
+function reloadPage(skipCache)
+{
+	var location = document.location;
+
+	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	{
+		location.reload(skipCache);
+		callback(_elm_lang$core$Native_Scheduler.succeed(_elm_lang$core$Native_Utils.Tuple0));
+	});
+}
+
 function setLocation(url)
 {
 	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
@@ -63,6 +74,7 @@ function getLocation()
 return {
 	go: go,
 	setLocation: setLocation,
+	reloadPage: reloadPage,
 	pushState: pushState,
 	replaceState: replaceState,
 	getLocation: getLocation

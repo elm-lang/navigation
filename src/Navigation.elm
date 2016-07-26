@@ -1,5 +1,5 @@
 effect module Navigation where { command = MyCmd, subscription = MySub } exposing
-  ( back, forward, visit
+  ( back, forward, visit, reload
   , newUrl, modifyUrl
   , program, programWithFlags
   , Parser, makeParser, Location
@@ -16,7 +16,7 @@ request to your servers. Instead, you manage the changes yourself in Elm.
 @docs newUrl, modifyUrl
 
 # Navigation
-@docs back, forward, visit
+@docs back, forward, visit, reload
 
 # Start your Program
 @docs program, programWithFlags, Parser, makeParser, Location
@@ -168,6 +168,16 @@ visit url =
   command (Visit url)
 
 
+{-| Reload the current page. If passed `True`, instructs the browser not to
+use a cached version of the page.
+
+    -- Reload the page from the server, not using any cached versions.
+    reload True
+-}
+reload : Bool -> Cmd msg
+reload skipCache =
+  command (Reload skipCache)
+
 
 -- CHANGE HISTORY
 
@@ -255,6 +265,7 @@ type MyCmd msg
   | New String
   | Modify String
   | Visit String
+  | Reload Bool
 
 
 cmdMap : (a -> b) -> MyCmd a -> MyCmd b
@@ -271,6 +282,9 @@ cmdMap _ myCmd =
 
     Visit url ->
         Visit url
+
+    Reload skipCache ->
+        Reload skipCache
 
 
 type MySub msg =
@@ -341,6 +355,10 @@ cmdHelp router subs cmd =
     Visit url ->
       setLocation url
 
+    Reload skipCache ->
+      reloadPage skipCache
+
+
 
 notify : Platform.Router msg Location -> List (MySub msg) -> Location -> Task x ()
 notify router subs location =
@@ -361,6 +379,11 @@ spawnPopState router =
 setLocation : String -> Task x ()
 setLocation =
   Native.Navigation.setLocation
+
+
+reloadPage : Bool -> Task x ()
+reloadPage =
+  Native.Navigation.reloadPage
 
 
 go : Int -> Task x ()
