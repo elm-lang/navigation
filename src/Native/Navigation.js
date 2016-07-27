@@ -32,11 +32,9 @@ function replaceState(url)
 
 function reloadPage(skipCache)
 {
-	var location = document.location;
-
 	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
 	{
-		location.reload(skipCache);
+		document.location.reload(skipCache);
 		callback(_elm_lang$core$Native_Scheduler.succeed(_elm_lang$core$Native_Utils.Tuple0));
 	});
 }
