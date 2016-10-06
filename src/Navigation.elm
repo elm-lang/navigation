@@ -77,10 +77,8 @@ programWithFlags (Parser parser) stuff =
     view model =
       App.map UserMsg (stuff.view model)
 
-    location =
-      Native.Navigation.getLocation ()
-
     init flags =
+      location = Native.Navigation.getLocation ()
       updateHelp UserMsg (stuff.init flags (parser location))
   in
     App.programWithFlags
