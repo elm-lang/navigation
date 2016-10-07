@@ -2,7 +2,7 @@ effect module Navigation where { command = MyCmd, subscription = MySub } exposin
   ( back, forward
   , newUrl, modifyUrl
   , program, programWithFlags
-  , Parser, makeParser, Location
+  , Location
   )
 
 {-| This is a library for managing browser navigation yourself.
@@ -18,15 +18,14 @@ request to your servers. Instead, you manage the changes yourself in Elm.
 # Navigation
 @docs back, forward
 
-# Start your Program
-@docs program, programWithFlags, Parser, makeParser, Location
+# Programs with Locations
+@docs program, programWithFlags, Location
 
 -}
 
 
 import Dom.LowLevel exposing (onWindow)
 import Html exposing (Html)
-import Html.App as App
 import Json.Decode as Json
 import Native.Navigation
 import Process
@@ -37,94 +36,82 @@ import Task exposing (Task)
 -- PROGRAMS
 
 
-type MyMsg msg
-  = Change Location
-  | UserMsg msg
+{-| Same as [`Html.program`][doc], but your `update` function gets messages
+whenever the URL changes.
 
+[doc]: http://package.elm-lang.org/packages/elm-lang/html/latest/Html#program
 
-{-| Works the same as the `program` function, but can handle flags. See
-[`Html.App.programWithFlags`][doc] for more information.
+The first difference is the `Location -> msg` argument. This converts a
+[`Location`](#location) into a message whenever the URL changes. That message
+is fed into your `update` function just like any other one.
 
-[doc]: http://package.elm-lang.org/packages/elm-lang/html/latest/Html-App#programWithFlags
+The second difference is that the `init` function takes `Location` as an
+argument. This lets you use the URL on the first frame.
+
+**Note:** A location message is produced every time the URL changes. This
+includes things exposed by this library, like `back` and `newUrl`, as well as
+whenever the user clicks the back or forward buttons of the browsers. So if
+the URL changes, you will hear about it in your `update` function.
 -}
-programWithFlags
-  : Parser data
+program
+  : (Location -> msg)
   ->
-    { init : flags -> data -> (model, Cmd msg)
+    { init : Location -> (model, Cmd msg)
     , update : msg -> model -> (model, Cmd msg)
-    , urlUpdate : data -> model -> (model, Cmd msg)
     , view : model -> Html msg
     , subscriptions : model -> Sub msg
     }
-  -> Program flags
-programWithFlags (Parser parser) stuff =
+  -> Program Never model msg
+program locationToMessage stuff =
   let
-    update msg model =
-      updateHelp UserMsg <|
-        case msg of
-          Change location ->
-            stuff.urlUpdate (parser location) model
-
-          UserMsg userMsg ->
-            stuff.update userMsg model
-
     subs model =
       Sub.batch
-        [ subscription (Monitor Change)
-        , Sub.map UserMsg (stuff.subscriptions model)
+        [ subscription (Monitor locationToMessage)
+        , stuff.subscriptions model
         ]
 
-    view model =
-      App.map UserMsg (stuff.view model)
-
-    init flags =
-      let 
-        location = Native.Navigation.getLocation ()
-      in 
-        updateHelp UserMsg (stuff.init flags (parser location))
+    init =
+      stuff.init (Native.Navigation.getLocation ())
   in
-    App.programWithFlags
+    Html.program
       { init = init
-      , view = view
-      , update = update
+      , view = stuff.view
+      , update = stuff.update
       , subscriptions = subs
       }
 
 
-updateHelp : (a -> b) -> (model, Cmd a) -> (model, Cmd b)
-updateHelp func (model, cmds) =
-  (model, Cmd.map func cmds)
+{-| Works the same as [`program`](#program), but it can also handle flags.
+See [`Html.programWithFlags`][doc] for more information.
 
-
-{-| This function augments [`Html.App.program`][doc]. The new things include:
-
-  - `Parser` &mdash; Whenever this library changes the URL, the parser you
-  provide will run. This turns the raw URL string into useful data.
-
-  - `urlUpdate` &mdash; Whenever the `Parser` produces new data, we need to
-  update our model in some way to react to the change. The `urlUpdate` function
-  handles this case. (It works exactly like the normal `update` function. Take
-  in a message, update the model.)
-
-[doc]: http://package.elm-lang.org/packages/elm-lang/html/latest/Html-App#program
-
-**Note:** The `urlUpdate` function is called every time the URL changes. This
-includes things exposed by this library, like `back` and `newUrl`, as well as
-whenever the user clicks the back or forward buttons of the browsers. If the
-address changes, you should hear about it.
+[doc]: http://package.elm-lang.org/packages/elm-lang/html/latest/Html#programWithFlags
 -}
-program
-  : Parser data
+programWithFlags
+  : (Location -> msg)
   ->
-    { init : data -> (model, Cmd msg)
+    { init : flags -> Location -> (model, Cmd msg)
     , update : msg -> model -> (model, Cmd msg)
-    , urlUpdate : data -> model -> (model, Cmd msg)
     , view : model -> Html msg
     , subscriptions : model -> Sub msg
     }
-  -> Program Never
-program parser stuff =
-  programWithFlags parser { stuff | init = \_ -> stuff.init }
+  -> Program flags model msg
+programWithFlags locationToMessage stuff =
+  let
+    subs model =
+      Sub.batch
+        [ subscription (Monitor locationToMessage)
+        , stuff.subscriptions model
+        ]
+
+    init flags =
+      stuff.init flags (Native.Navigation.getLocation ())
+  in
+    Html.programWithFlags
+      { init = init
+      , view = stuff.view
+      , update = stuff.update
+      , subscriptions = subs
+      }
 
 
 
@@ -183,44 +170,19 @@ modifyUrl url =
 
 
 
--- PARSING
-
-
-{-| This library is primarily about treating the address bar as an input to
-your program. A `Parser` helps you turn the string in the address bar into
-data that is easier for your app to handle.
--}
-type Parser a =
-  Parser (Location -> a)
-
-
-{-| The `makeParser` function lets you parse the navigation state any way you
-want.
-
-**Note:** Check out the examples associated with this GitHub repo to see a
-simple usage. See [`evancz/url-parser`][parse] for a more complex example of
-URL parsing. The approach used there makes it pretty easy to turn strings into
-structured data, and I hope it will serve as a baseline for other URL parsing
-libraries that folks make.
-
-[parse]: https://github.com/evancz/url-parser
--}
-makeParser : (Location -> a) -> Parser a
-makeParser =
-  Parser
+-- LOCATION
 
 
 {-| A bunch of information about the address bar.
 
-**Note:** These fields correspond exactly with the fields of `document.location`
-as described [here](https://developer.mozilla.org/en-US/docs/Web/API/Location).
-Good luck with that.
-
-**Note 2:** You should be using a library like [`evancz/url-parser`][parse] to
-deal with all this stuff, so generally speaking, you should not have to deal
-with locations directly.
+**Note 1:** Almost everyone will want to use a URL parsing library like
+[`evancz/url-parser`][parse] to turn a `Location` into something more useful
+in your `update` function.
 
 [parse]: https://github.com/evancz/url-parser
+
+**Note 2:** These fields correspond exactly with the fields of `document.location`
+as described [here](https://developer.mozilla.org/en-US/docs/Web/API/Location).
 -}
 type alias Location =
   { href : String
@@ -270,7 +232,7 @@ subMap func (Monitor tagger) =
 
 
 (&>) task1 task2 =
-  task1 `Task.andThen` \_ -> task2
+  Task.andThen (\_ -> task2) task1
 
 
 type alias State msg =
@@ -300,10 +262,7 @@ onEffects router cmds subs {process} =
             &> Task.succeed (State subs Nothing)
 
         (_ :: _, Nothing) ->
-          spawnPopState router
-            `Task.andThen` \pid ->
-
-          Task.succeed (State subs (Just pid))
+          Task.map (State subs << Just) (spawnPopState router)
 
         (_, _) ->
           Task.succeed (State subs process)
@@ -320,10 +279,12 @@ cmdHelp router subs cmd =
       go n
 
     New url ->
-      pushState url `Task.andThen` notify router subs
+      pushState url
+        |> Task.andThen (notify router subs)
 
     Modify url ->
-      replaceState url `Task.andThen` notify router subs
+      replaceState url
+        |> Task.andThen (notify router subs)
 
 
 notify : Platform.Router msg Location -> List (MySub msg) -> Location -> Task x ()
