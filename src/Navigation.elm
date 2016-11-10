@@ -8,7 +8,7 @@ effect module Navigation where { command = MyCmd, subscription = MySub } exposin
 {-| This is a library for managing browser navigation yourself.
 
 The core functionality is the ability to &ldquo;navigate&rdquo; to new URLs,
-changing the address bar of the broswer *without* the browser kicking off a
+changing the address bar of the browser *without* the browser kicking off a
 request to your servers. Instead, you manage the changes yourself in Elm.
 
 
