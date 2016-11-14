@@ -18,7 +18,6 @@ main =
     { init = init
     , view = view
     , update = update
-    , urlUpdate = urlUpdate
     , subscriptions = subscriptions
     }
 
@@ -32,14 +31,16 @@ toUrl count =
   "#/" ++ toString count
 
 
-fromUrl : String -> Result String Int
+fromUrl : String -> Int
 fromUrl url =
-  String.toInt (String.dropLeft 2 url)
+  case String.toInt (String.dropLeft 2 url) of
+    Err _ -> 0
+    Ok count -> count
 
 
-urlParser : Navigation.Parser (Result String Int)
-urlParser =
-  Navigation.makeParser (fromUrl << .hash)
+urlParser : Navigation.Location -> Msg
+urlParser location =
+  HashChange (fromUrl location.hash)
 
 
 
@@ -49,16 +50,16 @@ urlParser =
 type alias Model = Int
 
 
-init : Result String Int -> (Model, Cmd Msg)
-init result =
-  urlUpdate result 0
+init : Navigation.Location -> (Model, Cmd Msg)
+init location =
+  ( (fromUrl location.hash), Cmd.none )
 
 
 
 -- UPDATE
 
 
-type Msg = Increment | Decrement
+type Msg = Increment | Decrement | HashChange Int
 
 
 {-| A relatively normal update function. The only notable thing here is that we
@@ -68,30 +69,15 @@ previous pages.
 -}
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-  let
-    newModel =
-      case msg of
-        Increment ->
-          model + 1
+  case msg of
+    Increment ->
+      (model, Navigation.newUrl (toUrl (model + 1)))
 
-        Decrement ->
-          model - 1
-  in
-    (newModel, Navigation.newUrl (toUrl newModel))
+    Decrement ->
+      (model, Navigation.newUrl (toUrl (model - 1)))
 
-
-{-| The URL is turned into a result. If the URL is valid, we just update our
-model to the new count. If it is not a valid URL, we modify the URL to make
-sense.
--}
-urlUpdate : Result String Int -> Model -> (Model, Cmd Msg)
-urlUpdate result model =
-  case result of
-    Ok newCount ->
-      (newCount, Cmd.none)
-
-    Err _ ->
-      (model, Navigation.modifyUrl (toUrl model))
+    HashChange count ->
+      (count, Cmd.none)
 
 
 
