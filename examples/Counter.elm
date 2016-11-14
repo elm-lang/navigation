@@ -52,7 +52,7 @@ type alias Model = Int
 
 init : Navigation.Location -> (Model, Cmd Msg)
 init location =
-  ( 0, Cmd.none )
+  ( (fromUrl location.hash), Cmd.none )
 
 
 
