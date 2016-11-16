@@ -1,10 +1,8 @@
 # Navigation
 
-This is a library for managing browser navigation yourself.
+Normally when the address bar changes, the browser sends some HTTP requests to load new pages.
 
-The core functionality is the ability to &ldquo;navigate&rdquo; to new URLs, changing the address bar of the browser *without* the browser kicking off a request to your servers. Instead, you manage the changes yourself in Elm.
-
-This is common in single-page apps (SPAs) where you switch between different pages without doing a full refresh. This can mean you have less network traffic and get people from page to page more quickly.
+This library lets you capture navigation and handle it yourself. No need to kick off a request to your servers.
 
 
 ## Examples
@@ -12,14 +10,23 @@ This is common in single-page apps (SPAs) where you switch between different pag
 Check out the `examples/` directory of this repo. The `README` there will give you more information.
 
 
-## Terminology
+## Context
 
-The term &ldquo;routing&rdquo; is commonly used as a blanket term for anything related to managing the address bar yourself. I think this term is misleading, and probably harmful to the architecture of front-end applications.
+You want your website to load quickly, especially if many users will be on mobile phones. You also want to send as little data as possible to users, especially if they have slow internet connections or data caps.
 
-  - **On Servers** &mdash; You are literally routing payloads to functions. Servers can make the assumption that all queries are independent. There is no state to persist. There is no concept of &ldquo;going back&rdquo; to some other URL.
+> For some reason, this general goal is called “Single Page Apps” or SPAs in the JavaScript world. It is odd in that the essence is that you want to manage multiple pages intelligently, and maybe “asset management” would have been clearer, but that ship has sailed.
 
-  - **In Browsers** &mdash; We treat the address bar as an input (like mouse or keyboard) so we can update our app more efficiently. The whole point is that *nothing* is independent! You *can* persist state. You *can* go back.
+One important trick is to use the browser cache as much as possible. Ideally, when a user navigates to a new page, they do not make *any* HTTP requests. They have it all already. In a good case, you have most of the JS code you need already, and you just ask for a tiny bit more.
 
-My point is that routing on servers has an intuitive and clear meaning. You route payloads to functions. What we want in browsers overlaps only in that we are also dealing with URLs. Otherwise, the goals are entirely different. So why take a term with a clear and obvious meaning and apply it to something 95% unrelated?
+Normally, browser navigation causes an HTTP request for some HTML. That HTML may then fetch some JavaScript and images and other stuff. By capturing navigation events (like this library does) you can skip that first HTTP request and figure out a way to get only the assets you are missing.
 
-Point is, I have named this library `elm-lang/navigation` to emphasize our actual goals in the browser. This library is for managing browser navigation yourself. If you want URL parsing, you can use libraries like `evancz/url-parser`. Between the terms &ldquo;managed navigation&rdquo; and &ldquo;URL parsing&rdquo; we have covered the core concepts in a clearer and more helpful way.
+
+### Additional Approaches
+
+Capturing navigation is a start, but you ultimately want a few things in addition to this library:
+
+  - **Server-Side Rendering** &mdash; If you view is managed by JavaScript, you typically load an HTML page, and then load your JavaScript, and then the browser draws everything. Pages will load faster if you hard-code the first frame into the HTML directly. In that world, you load an HTML page, the browser draws everything, you load your JavaScript, and everything becomes interactive. Drawing is no longer blocked on the second HTTP request. This is also nice for people who have JavaScript disabled.
+
+  - **Bundling Assets** &mdash; Each page needs a bunch of JavaScript to render. One way to do it is to put all the JS necessary for the page into a single file. With Elm, that may be 30kb to 50kb per page after minification and gzip, which is not a huge deal in many scenarios. If you have 100 pages, many of them may actually share significant sections of code. Perhaps they all share a dependency on `elm-lang/core` and `elm-lang/html`. These *dependencies* are also likely to be quite stable, even if the pages are changing, so a better strategy would be to cut your assets into smaller bundles that can be shared across pages and stay cached even as you make changes to individual pages.
+
+This is all *possible* in JavaScript, but it is quite an ordeal. These things are not possible in Elm right now. Rather than hacking them together by accident, like in JavaScript, these capabilities will become available as part of Elm itself. They will be purposefully designed to work together well and be pleasant to use. If these are a hard requirement for your project, it is probably best to experiment with Elm in a less constrained setting until they are officially supported.
