@@ -86,32 +86,30 @@ See [`Html.programWithFlags`][doc] for more information.
 
 [doc]: http://package.elm-lang.org/packages/elm-lang/html/latest/Html#programWithFlags
 -}
-programWithFlags
-  : (Location -> msg)
-  ->
-    { init : flags -> Location -> (model, Cmd msg)
-    , update : msg -> model -> (model, Cmd msg)
-    , view : model -> Html msg
-    , subscriptions : model -> Sub msg
-    }
-  -> Program flags model msg
+programWithFlags :
+    (Location -> msg)
+    -> { init : flags -> Location -> ( model, Cmd msg )
+       , update : msg -> model -> ( model, Cmd msg )
+       , view : model -> Html msg
+       , subscriptions : model -> Sub msg
+    -> Program flags model msg
 programWithFlags locationToMessage stuff =
-  let
-    subs model =
-      Sub.batch
-        [ subscription (Monitor locationToMessage)
-        , stuff.subscriptions model
-        ]
+    let
+        subs model =
+            Sub.batch
+                [ subscription (Monitor locationToMessage)
+                , stuff.subscriptions model
+                ]
 
-    init flags =
-      stuff.init flags (Native.Navigation.getLocation ())
-  in
-    Html.programWithFlags
-      { init = init
-      , view = stuff.view
-      , update = stuff.update
-      , subscriptions = subs
-      }
+        init flags =
+            stuff.init flags (Native.Navigation.getLocation ())
+    in
+        Html.programWithFlags
+            { init = init
+            , view = stuff.view
+            , update = stuff.update
+            , subscriptions = subs
+            }
 
 
 
@@ -299,7 +297,7 @@ notify router subs location =
 
 spawnPopState : Platform.Router msg Location -> Task x Process.Id
 spawnPopState router =
-  Process.spawn <| onWindow "popstate" Json.value <| \_ ->
+  Process.spawn <| onWindow stateChangeEvent Json.value <| \_ ->
     Platform.sendToSelf router (Native.Navigation.getLocation ())
 
 
@@ -316,3 +314,17 @@ pushState =
 replaceState : String -> Task x Location
 replaceState =
   Native.Navigation.replaceState
+
+
+supportsPopStateHashChange : () -> Bool
+supportsPopStateHashChange =
+  Native.Navigation.supportsPopStateHashChange
+
+
+stateChangeEvent : String
+stateChangeEvent =
+  if supportsPopStateHashChange () then
+    "popstate"
+  else
+    "hashchange"
+
