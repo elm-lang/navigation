@@ -30,6 +30,10 @@ function replaceState(url)
 	});
 }
 
+function needsHashchange() {
+	return window.navigator.userAgent.indexOf('Trident') !== -1;
+}
+
 function getLocation()
 {
 	var location = document.location;
@@ -54,7 +58,8 @@ return {
 	go: go,
 	pushState: pushState,
 	replaceState: replaceState,
-	getLocation: getLocation
+	getLocation: getLocation,
+	needsHashchange: needsHashchange
 };
 
 }();
