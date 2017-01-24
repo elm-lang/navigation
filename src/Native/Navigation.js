@@ -30,6 +30,34 @@ function replaceState(url)
 	});
 }
 
+function reloadPage(skipCache)
+{
+	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	{
+		document.location.reload(skipCache);
+		callback(_elm_lang$core$Native_Scheduler.succeed(_elm_lang$core$Native_Utils.Tuple0));
+	});
+}
+
+function setLocation(url)
+{
+	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	{
+		try
+		{
+			window.location = url;
+		}
+		catch(err)
+		{
+			// Only Firefox can throw a NS_ERROR_MALFORMED_URI exception here.
+			// Other browsers reload the page, so let's be consistent about that.
+			document.location.reload(false);
+		}
+		callback(_elm_lang$core$Native_Scheduler.succeed(_elm_lang$core$Native_Utils.Tuple0));
+	});
+}
+
+
 function getLocation()
 {
 	var location = document.location;
@@ -52,6 +80,8 @@ function getLocation()
 
 return {
 	go: go,
+	setLocation: setLocation,
+	reloadPage: reloadPage,
 	pushState: pushState,
 	replaceState: replaceState,
 	getLocation: getLocation

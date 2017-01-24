@@ -1,5 +1,5 @@
 effect module Navigation where { command = MyCmd, subscription = MySub } exposing
-  ( back, forward
+  ( back, forward, visit, reload
   , newUrl, modifyUrl
   , program, programWithFlags
   , Location
@@ -16,7 +16,7 @@ request to your servers. Instead, you manage the changes yourself in Elm.
 @docs newUrl, modifyUrl
 
 # Navigation
-@docs back, forward
+@docs back, forward, visit, reload
 
 # Programs with Locations
 @docs program, programWithFlags, Location
@@ -145,6 +145,26 @@ forward n =
   command (Jump n)
 
 
+{-| Leave the current page and visit the given URL. This results in a page load
+even if the provided URL is the same as the current one.
+
+    visit "http://elm-lang.org"
+-}
+visit : String -> Cmd msg
+visit url =
+  command (Visit url)
+
+
+{-| Reload the current page. If passed `True`, instructs the browser not to
+use a cached version of the page.
+
+    -- Reload the page from the server, not using any cached versions.
+    reload True
+-}
+reload : Bool -> Cmd msg
+reload skipCache =
+  command (Reload skipCache)
+
 
 -- CHANGE HISTORY
 
@@ -199,7 +219,6 @@ type alias Location =
   }
 
 
-
 -- EFFECT MANAGER
 
 
@@ -207,6 +226,8 @@ type MyCmd msg
   = Jump Int
   | New String
   | Modify String
+  | Visit String
+  | Reload Bool
 
 
 cmdMap : (a -> b) -> MyCmd a -> MyCmd b
@@ -220,6 +241,12 @@ cmdMap _ myCmd =
 
     Modify url ->
       Modify url
+
+    Visit url ->
+        Visit url
+
+    Reload skipCache ->
+        Reload skipCache
 
 
 type MySub msg =
@@ -286,6 +313,13 @@ cmdHelp router subs cmd =
       replaceState url
         |> Task.andThen (notify router subs)
 
+    Visit url ->
+      setLocation url
+
+    Reload skipCache ->
+      reloadPage skipCache
+
+
 
 notify : Platform.Router msg Location -> List (MySub msg) -> Location -> Task x ()
 notify router subs location =
@@ -301,6 +335,16 @@ spawnPopState : Platform.Router msg Location -> Task x Process.Id
 spawnPopState router =
   Process.spawn <| onWindow "popstate" Json.value <| \_ ->
     Platform.sendToSelf router (Native.Navigation.getLocation ())
+
+
+setLocation : String -> Task x ()
+setLocation =
+  Native.Navigation.setLocation
+
+
+reloadPage : Bool -> Task x ()
+reloadPage =
+  Native.Navigation.reloadPage
 
 
 go : Int -> Task x ()
