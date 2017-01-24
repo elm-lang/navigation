@@ -77,6 +77,10 @@ function getLocation()
 	};
 }
 
+function supportsPopStateHashChange() 
+{
+	return window.navigator.userAgent.indexOf('Trident') === -1;
+}
 
 return {
 	go: go,
@@ -84,7 +88,8 @@ return {
 	reloadPage: reloadPage,
 	pushState: pushState,
 	replaceState: replaceState,
-	getLocation: getLocation
+	getLocation: getLocation,
+	supportsPopStateHashChange: supportsPopStateHashChange
 };
 
 }();
