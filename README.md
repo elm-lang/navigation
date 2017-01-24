@@ -10,6 +10,13 @@ This library lets you capture navigation and handle it yourself. No need to kick
 Check out the `examples/` directory of this repo. The `README` there will give you more information.
 
 
+## Right and Middle Clicks on Hashless URLs
+
+We got an issue asking "[what is the best way to handle clicks on *normal* URLs?](https://github.com/elm-lang/navigation/issues/13)" where you want to handle the navigation by hand, but also permit middle and right clicks.
+
+The pending solution lives [here](https://github.com/elm-lang/html/issues/110).
+
+
 ## Context
 
 You want your website to load quickly, especially if many users will be on mobile phones. You also want to send as little data as possible to users, especially if they have slow internet connections or data caps.
