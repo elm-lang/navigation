@@ -387,7 +387,7 @@ spawnPopWatcher router =
     reportLocation _ =
       Platform.sendToSelf router (Native.Navigation.getLocation ())
   in
-    if Native.Navigation.isInternetExplorer11 then
+    if Native.Navigation.isInternetExplorer11 () then
       Task.map2 InternetExplorer
         (Process.spawn (onWindow "popstate" Json.value reportLocation))
         (Process.spawn (onWindow "hashchange" Json.value reportLocation))
