@@ -1,5 +1,6 @@
 effect module Navigation where { command = MyCmd, subscription = MySub } exposing
-  ( back, forward, visit, reload
+  ( back, forward
+  , load, reload
   , newUrl, modifyUrl
   , program, programWithFlags
   , Location
@@ -16,7 +17,10 @@ request to your servers. Instead, you manage the changes yourself in Elm.
 @docs newUrl, modifyUrl
 
 # Navigation
-@docs back, forward, visit, reload
+@docs back, forward
+
+# Force Page Loads
+@docs load, reload
 
 # Programs with Locations
 @docs program, programWithFlags, Location
@@ -145,25 +149,29 @@ forward n =
   command (Jump n)
 
 
-{-| Leave the current page and visit the given URL. This results in a page load
-even if the provided URL is the same as the current one.
+{-| Leave the current page and load the given URL. **This always results in a
+page load**, even if the provided URL is the same as the current one.
 
-    visit "http://elm-lang.org"
+    load "http://elm-lang.org"
+
+Use [`newUrl`](#newUrl) and [`modifyUrl`](#modifyUrl) if you want to change
+the URL without a page load.
 -}
-visit : String -> Cmd msg
-visit url =
+load : String -> Cmd msg
+load url =
   command (Visit url)
 
 
-{-| Reload the current page. If passed `True`, instructs the browser not to
-use a cached version of the page.
+{-| Reload the current page. **This always results in a page load!**
+The `Bool` argument is whether you want to skip the cache or not.
 
-    -- Reload the page from the server, not using any cached versions.
-    reload True
+    reload True   -- definitely skips browser cache
+    reload False  -- may use the browser cache
 -}
 reload : Bool -> Cmd msg
 reload skipCache =
   command (Reload skipCache)
+
 
 
 -- CHANGE HISTORY
