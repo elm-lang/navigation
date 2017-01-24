@@ -1,6 +1,6 @@
 effect module Navigation where { command = MyCmd, subscription = MySub } exposing
   ( back, forward
-  , load, reload
+  , load, reload, reloadAndSkipCache
   , newUrl, modifyUrl
   , program, programWithFlags
   , Location
@@ -20,7 +20,7 @@ request to your servers. Instead, you manage the changes yourself in Elm.
 @docs back, forward
 
 # Force Page Loads
-@docs load, reload
+@docs load, reload, reloadAndSkipCache
 
 # Programs with Locations
 @docs program, programWithFlags, Location
@@ -163,14 +163,21 @@ load url =
 
 
 {-| Reload the current page. **This always results in a page load!**
-The `Bool` argument is whether you want to skip the cache or not.
-
-    reload True   -- definitely skips browser cache
-    reload False  -- may use the browser cache
+This may grab resources from the browser cache, so use
+[`reloadAndSkipCache`](reloadAndSkipCache) if you want to be sure
+that you are not loading any cached resources.
 -}
-reload : Bool -> Cmd msg
-reload skipCache =
-  command (Reload skipCache)
+reload : Cmd msg
+reload =
+  command (Reload False)
+
+
+{-| Reload the current page without using the browser cache. **This always
+results in a page load!** It is more common to want [`reload`](reload).
+-}
+reloadAndSkipCache : Cmd msg
+reloadAndSkipCache =
+  command (Reload True)
 
 
 
