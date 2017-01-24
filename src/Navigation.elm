@@ -258,19 +258,32 @@ subMap func (Monitor tagger) =
   Monitor (tagger >> func)
 
 
-(&>) task1 task2 =
-  Task.andThen (\_ -> task2) task1
+
+-- STATE
 
 
 type alias State msg =
   { subs : List (MySub msg)
-  , process : Maybe Process.Id
+  , popWatcher : Maybe PopWatcher
   }
+
+
+type PopWatcher
+  = Normal Process.Id
+  | InternetExplorer Process.Id Process.Id
+
+
+
+-- INIT
 
 
 init : Task Never (State msg)
 init =
   Task.succeed (State [] Nothing)
+
+
+
+-- SELF MESSAGES
 
 
 onSelfMsg : Platform.Router msg Location -> Location -> State msg -> Task Never (State msg)
@@ -279,20 +292,28 @@ onSelfMsg router location state =
     &> Task.succeed state
 
 
+(&>) task1 task2 =
+  Task.andThen (\_ -> task2) task1
+
+
+
+-- APP MESSAGES
+
+
 onEffects : Platform.Router msg Location -> List (MyCmd msg) -> List (MySub msg) -> State msg -> Task Never (State msg)
-onEffects router cmds subs {process} =
+onEffects router cmds subs {popWatcher} =
   let
     stepState =
-      case (subs, process) of
-        ([], Just pid) ->
-          Process.kill pid
+      case (subs, popWatcher) of
+        ([], Just watcher) ->
+          killPopWatcher watcher
             &> Task.succeed (State subs Nothing)
 
         (_ :: _, Nothing) ->
-          Task.map (State subs << Just) (spawnPopState router)
+          Task.map (State subs << Just) (spawnPopWatcher router)
 
         (_, _) ->
-          Task.succeed (State subs process)
+          Task.succeed (State subs popWatcher)
 
   in
     Task.sequence (List.map (cmdHelp router subs) cmds)
@@ -331,12 +352,6 @@ notify router subs location =
       &> Task.succeed ()
 
 
-spawnPopState : Platform.Router msg Location -> Task x Process.Id
-spawnPopState router =
-  Process.spawn <| onWindow "popstate" Json.value <| \_ ->
-    Platform.sendToSelf router (Native.Navigation.getLocation ())
-
-
 setLocation : String -> Task x ()
 setLocation =
   Native.Navigation.setLocation
@@ -360,3 +375,35 @@ pushState =
 replaceState : String -> Task x Location
 replaceState =
   Native.Navigation.replaceState
+
+
+
+-- POP WATCHER STUFF
+
+
+spawnPopWatcher : Platform.Router msg Location -> Task x PopWatcher
+spawnPopWatcher router =
+  let
+    reportLocation _ =
+      Platform.sendToSelf router (Native.Navigation.getLocation ())
+  in
+    if Native.Navigation.isInternetExplorer11 then
+      Task.map2 InternetExplorer
+        (Process.spawn (onWindow "popstate" Json.value reportLocation))
+        (Process.spawn (onWindow "hashchange" Json.value reportLocation))
+
+    else
+      Task.map Normal <|
+        Process.spawn (onWindow "popstate" Json.value reportLocation)
+
+
+
+killPopWatcher : PopWatcher -> Task x ()
+killPopWatcher popWatcher =
+  case popWatcher of
+    Normal pid ->
+      Process.kill pid
+
+    InternetExplorer pid1 pid2 ->
+      Process.kill pid1
+        &> Process.kill pid2
