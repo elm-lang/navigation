@@ -1,5 +1,8 @@
 var _elm_lang$navigation$Native_Navigation = function() {
 
+
+// FAKE NAVIGATION
+
 function go(n)
 {
 	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
@@ -30,6 +33,9 @@ function replaceState(url)
 	});
 }
 
+
+// REAL NAVIGATION
+
 function reloadPage(skipCache)
 {
 	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
@@ -57,6 +63,8 @@ function setLocation(url)
 	});
 }
 
+
+// GET LOCATION
 
 function getLocation()
 {
