@@ -31,7 +31,7 @@ request to your servers. Instead, you manage the changes yourself in Elm.
 import Dom.LowLevel exposing (onWindow)
 import Html exposing (Html)
 import Json.Decode as Json
-import Native.Navigation
+import Elm.Kernel.Navigation
 import Process
 import Task exposing (Task)
 
@@ -75,7 +75,7 @@ program locationToMessage stuff =
         ]
 
     init =
-      stuff.init (Native.Navigation.getLocation ())
+      stuff.init (Elm.Kernel.Navigation.getLocation ())
   in
     Html.program
       { init = init
@@ -108,7 +108,7 @@ programWithFlags locationToMessage stuff =
         ]
 
     init flags =
-      stuff.init flags (Native.Navigation.getLocation ())
+      stuff.init flags (Elm.Kernel.Navigation.getLocation ())
   in
     Html.programWithFlags
       { init = init
@@ -369,27 +369,27 @@ notify router subs location =
 
 setLocation : String -> Task x ()
 setLocation =
-  Native.Navigation.setLocation
+  Elm.Kernel.Navigation.setLocation
 
 
 reloadPage : Bool -> Task x ()
 reloadPage =
-  Native.Navigation.reloadPage
+  Elm.Kernel.Navigation.reloadPage
 
 
 go : Int -> Task x ()
 go =
-  Native.Navigation.go
+  Elm.Kernel.Navigation.go
 
 
 pushState : String -> Task x Location
 pushState =
-  Native.Navigation.pushState
+  Elm.Kernel.Navigation.pushState
 
 
 replaceState : String -> Task x Location
 replaceState =
-  Native.Navigation.replaceState
+  Elm.Kernel.Navigation.replaceState
 
 
 
@@ -400,9 +400,9 @@ spawnPopWatcher : Platform.Router msg Location -> Task x PopWatcher
 spawnPopWatcher router =
   let
     reportLocation _ =
-      Platform.sendToSelf router (Native.Navigation.getLocation ())
+      Platform.sendToSelf router (Elm.Kernel.Navigation.getLocation ())
   in
-    if Native.Navigation.isInternetExplorer11 () then
+    if Elm.Kernel.Navigation.isInternetExplorer11 () then
       Task.map2 InternetExplorer
         (Process.spawn (onWindow "popstate" Json.value reportLocation))
         (Process.spawn (onWindow "hashchange" Json.value reportLocation))
