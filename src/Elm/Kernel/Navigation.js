@@ -1,9 +1,8 @@
-var _elm_lang$navigation$Native_Navigation = function() {
 
 
 // FAKE NAVIGATION
 
-function go(n)
+function _Navigation_go(n)
 {
 	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
 	{
@@ -15,7 +14,7 @@ function go(n)
 	});
 }
 
-function pushState(url)
+function _Navigation_pushState(url)
 {
 	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
 	{
@@ -24,7 +23,7 @@ function pushState(url)
 	});
 }
 
-function replaceState(url)
+function _Navigation_replaceState(url)
 {
 	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
 	{
@@ -36,7 +35,7 @@ function replaceState(url)
 
 // REAL NAVIGATION
 
-function reloadPage(skipCache)
+function _Navigation_reloadPage(skipCache)
 {
 	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
 	{
@@ -45,7 +44,7 @@ function reloadPage(skipCache)
 	});
 }
 
-function setLocation(url)
+function _Navigation_setLocation(url)
 {
 	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
 	{
@@ -66,7 +65,7 @@ function setLocation(url)
 
 // GET LOCATION
 
-function getLocation()
+function _Navigation_getLocation()
 {
 	var location = document.location;
 
@@ -88,20 +87,7 @@ function getLocation()
 
 // DETECT IE11 PROBLEMS
 
-function isInternetExplorer11()
+function _Navigation_isInternetExplorer11()
 {
 	return window.navigator.userAgent.indexOf('Trident') !== -1;
 }
-
-
-return {
-	go: go,
-	setLocation: setLocation,
-	reloadPage: reloadPage,
-	pushState: pushState,
-	replaceState: replaceState,
-	getLocation: getLocation,
-	isInternetExplorer11: isInternetExplorer11
-};
-
-}();
