@@ -1,34 +1,40 @@
+/*
+
+import Elm.Kernel.Scheduler exposing (binding, succeed)
+import Elm.Kernel.Utils exposing (Tuple0)
+
+*/
 
 
 // FAKE NAVIGATION
 
 function _Navigation_go(n)
 {
-	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	return __Scheduler_binding(function(callback)
 	{
 		if (n !== 0)
 		{
 			history.go(n);
 		}
-		callback(_elm_lang$core$Native_Scheduler.succeed(_elm_lang$core$Native_Utils.Tuple0));
+		callback(__Scheduler_succeed(__Utils_Tuple0));
 	});
 }
 
 function _Navigation_pushState(url)
 {
-	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	return __Scheduler_binding(function(callback)
 	{
 		history.pushState({}, '', url);
-		callback(_elm_lang$core$Native_Scheduler.succeed(getLocation()));
+		callback(__Scheduler_succeed(getLocation()));
 	});
 }
 
 function _Navigation_replaceState(url)
 {
-	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	return __Scheduler_binding(function(callback)
 	{
 		history.replaceState({}, '', url);
-		callback(_elm_lang$core$Native_Scheduler.succeed(getLocation()));
+		callback(__Scheduler_succeed(getLocation()));
 	});
 }
 
@@ -37,16 +43,16 @@ function _Navigation_replaceState(url)
 
 function _Navigation_reloadPage(skipCache)
 {
-	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	return __Scheduler_binding(function(callback)
 	{
 		document.location.reload(skipCache);
-		callback(_elm_lang$core$Native_Scheduler.succeed(_elm_lang$core$Native_Utils.Tuple0));
+		callback(__Scheduler_succeed(__Utils_Tuple0));
 	});
 }
 
 function _Navigation_setLocation(url)
 {
-	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	return __Scheduler_binding(function(callback)
 	{
 		try
 		{
@@ -58,7 +64,7 @@ function _Navigation_setLocation(url)
 			// Other browsers reload the page, so let's be consistent about that.
 			document.location.reload(false);
 		}
-		callback(_elm_lang$core$Native_Scheduler.succeed(_elm_lang$core$Native_Utils.Tuple0));
+		callback(__Scheduler_succeed(__Utils_Tuple0));
 	});
 }
 
