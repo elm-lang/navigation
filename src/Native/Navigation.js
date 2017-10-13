@@ -68,7 +68,7 @@ function setLocation(url)
 
 function getLocation()
 {
-	var location = document.location;
+	var location = (typeof document !== 'undefined') ? document.location : {};
 
 	return {
 		href: location.href,
