@@ -14,7 +14,7 @@ Check out the `examples/` directory of this repo. The `README` there will give y
 
 We got an issue asking "[what is the best way to handle clicks on *normal* URLs?](https://github.com/elm-lang/navigation/issues/13)" where you want to handle the navigation by hand, but also permit middle and right clicks.
 
-The pending solution lives [here](https://github.com/elm-lang/html/issues/110).
+The pending solution lives [here](https://github.com/elm/html/issues/110).
 
 
 ## Context
