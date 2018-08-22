@@ -1,1 +1,1 @@
-# Moved to [`elm/browser`](https://package.elm-lang.org/packages/elm/browser/latest/)
+# Moved to [`elm/browser`](https://github.com/elm/browser)
